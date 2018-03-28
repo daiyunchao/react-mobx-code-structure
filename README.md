@@ -5,3 +5,4 @@
 
 在最初没有任何设计的样子是这样的:
 
+![最初没有设计的样子]（https://github.com/daiyunchao/react-mobx-code-structure/blob/master/v1.jpg）
