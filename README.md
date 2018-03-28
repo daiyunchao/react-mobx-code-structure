@@ -56,5 +56,152 @@ render(){
 1. UI层基本没什么变化
 2. 添加了页面级的控制文件,该文件是单例的(同一个项目中,理论上只有一个相同的page,所以pageControl文件我设计的是单例的),在该文件中包含该页面Model的实例引用和该页面的逻辑处理,实现了将逻辑和UI独立
 3. 添加了pageControlBase,作为通用pageControl的父类,实现通用各个pageControl的通用方法
-4. 添加了shareModels,共享模型数据,对于一个项目总有
+4. 添加了shareModels,该文件是单例,共享模型数据,对于一个项目总有共有的模型(比如User),该文件用于存放那些共有的Model引用,方便页面之间的数据传递
+5. 请求API的部分也有一些变化,原来请求API的只是发生在Model层面,为了解决上述当请求既包含ModelA的数据 也包含ModelB的数据时action应该放到哪的问题,现在这类的API可以放到PageControl中
+
+新版本的的大致代码:
+
+Page的伪代码:
+```
+import Model from './pageControl/PageAControl';
+class PageA extends React.Component{
+  constructor(){
+    super();
+    //因为是每一个PageControl是单例的,所以不用实例化,直接调用需要的action就行了
+    Model.getPageADetail();
+  }
+}
+render(){
+  return (
+    <!--在具体绑定数据时,所有的数据都来着PageControl的这个Model,PageControl会有modelA modelB 实例的引用-->
+    <div>这里显示的是ModelA一个叫标题的玩意:{Model.modelA.title}</div>
+    <div>这里显示的是ModelA一个叫内容的玩意:{Model.modelA.content}</div>
+    <div>这里显示的是ModelB一个叫作者姓名的玩意:{Model.modelB.userName}</div>
+  )
+}
+```
+
+
+pageControl的伪代码:
+
+```
+import {observable, autorun, action, extendObservable, toJS} from "mobx";
+import ShareModel from './ShareModel';
+import ModelA from '../models/ModelA';
+import ModelB from '../models/ModelB';
+class PageAControl extends PageControlBase{
+
+  //页面A的一些状态
+  status={};
+  
+  constructor(){
+    super();
+    extendObservable(this.status,{
+      isLogin:false//是否登录状态
+    });
+    
+    //实例化model的,并且放入pageControl的引用中
+    this.modelA= new ModelA();
+    this.modelB= new ModelB();
+    
+    //如果modelB是一个全局的Model,比如User对象
+    //将ModelB存放到ShareModel中去:
+    ShareModel.add({"shareModelName":"modelB","shareModelEntity":this.modelB})
+  }
+  
+  //获取页面详情:
+  @action async getPageADetail(){
+  
+    //调用API,获取详情数据
+    let pageADetail= await API.getPageADetail();
+    
+    //将详情页的数据存放到modelA中
+    this.modelA.setModelInfo(pageADetail)
+    
+    //将详情页的数据存放到modelB中
+    this.modelB.setModelInfo(pageADetail);
+    
+  }
+}
+
+//将PageControl构建成单例模式
+export default new PageAControl();
+
+```
+
+PageControlBase的伪代码:
+```
+
+//pageControl的公告父类,用于实现各个pageControl的公共方法
+class PageControlBase {
+  pageControlCommonMethod(){
+    //这是父类的一个通用方法
+  }
+}
+export default PageControlBase;
+
+```
+
+ShareModel的伪代码:
+```
+class ShareModel{
+  shareModels={};
+  
+  //添加共享model的方法
+  add({shareModelName,shaeModelEntity}){
+    //...
+  }
+  
+  //获取共享model的方法
+  get({shareModelName}){
+    //...
+  }
+}
+//单例
+export default new ShareModel();
+```
+
+ModelA的伪代码:
+```
+import {observable, autorun, action, extendObservable, toJS} from "mobx";
+class ModelA{
+  data={};
+  constructor(){
+    @observable title=""
+    @observable content=""
+  }
+  async getModelADetail(){
+    //调用API,获取modelA的详情
+    let modelADetail= await API.getModelADetail();
+    this.title=modelADetail["title"];
+    this.content=modelADetail["content"];
+  }
+  
+  setModelADetail(data){
+    this.title=data.title;
+    this.content=data.content;
+  }
+}
+export default ModelA
+```
+v2的文档结构:
+
+```
+--components(公共组件)
+----userInfo.jsx
+--page(页面)
+----pageA.jsx
+----pageB.jsx
+--pageControl
+----pageAControl.js
+----pageBControl.js
+--data
+----shareModel.js
+--models
+----ModelA.js
+----ModelB.js
+```
+代码复杂度是比没有设计的v1版本高一些,但UI和逻辑分离,页面间的数据传递(ShareModel)更方便了,逻辑也更清晰,我觉得还是值得的.
+
+如果对我的代码结构有疑问或是有更好的解决方案可以提交:Issues一起讨论.
 
