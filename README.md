@@ -49,3 +49,12 @@ render(){
 
 针对上面这些问题 我做了以下的设计:
 
+![重新设计后的结构](https://github.com/daiyunchao/react-mobx-code-structure/blob/master/v2.jpg)
+说明&变化:
+
+通过结构图可以看到
+1. UI层基本没什么变化
+2. 添加了页面级的控制文件,该文件是单例的(同一个项目中,理论上只有一个相同的page,所以pageControl文件我设计的是单例的),在该文件中包含该页面Model的实例引用和该页面的逻辑处理,实现了将逻辑和UI独立
+3. 添加了pageControlBase,作为通用pageControl的父类,实现通用各个pageControl的通用方法
+4. 添加了shareModels,共享模型数据,对于一个项目总有
+
